@@ -132,4 +132,15 @@ class MySQLConnector extends DatabaseConnector
 
         return $r;
     }
+
+    /**
+     * @return int
+     */
+    public function getLastInsertedId(): int
+    {
+        if ($this->connection === null) {
+            return 0;
+        }
+        return (int)$this->connection->lastInsertId();
+    }
 }
