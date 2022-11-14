@@ -134,6 +134,24 @@ class MySQLConnector extends DatabaseConnector
     }
 
     /**
+     * @param array $params
+     * @return string
+     */
+    public function makeUpdateParams(array $params = []) :string
+    {
+        $r = [];
+        foreach ($params as $field => $value) {
+            $v = addslashes(stripslashes($value));
+            if (strpos($value, 'COMPRESS(') === 0){
+                $r[] = "`{$field}`={$value}";
+            } else {
+                $r[] = "`{$field}`='{$v}'";
+            }
+        }
+        return trim(implode(',', $r));
+    }
+
+    /**
      * @return int
      */
     public function getLastInsertedId(): int
