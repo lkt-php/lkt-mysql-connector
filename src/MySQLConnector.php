@@ -211,10 +211,10 @@ class MySQLConnector extends DatabaseConnector
     /**
      * @param Query $builder
      * @param string $type
-     * @param string $countableField
+     * @param string|null $countableField
      * @return string
      */
-    public function getQuery(Query $builder, string $type, string $countableField): string
+    public function getQuery(Query $builder, string $type, string $countableField = null): string
     {
         $whereString = $builder->getQueryWhere();
 
