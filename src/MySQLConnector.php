@@ -275,6 +275,9 @@ class MySQLConnector extends DatabaseConnector
                 }
                 return '';
 
+            case 'delete':
+                return "DELETE FROM {$builder->getTable()} WHERE 1 {$whereString}";
+
             default:
                 return '';
         }
