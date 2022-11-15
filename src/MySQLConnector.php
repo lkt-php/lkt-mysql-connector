@@ -10,6 +10,7 @@ use Lkt\Factory\Schemas\Fields\RelatedField;
 use Lkt\Factory\Schemas\Fields\RelatedKeysField;
 use Lkt\Factory\Schemas\Schema;
 use Lkt\Locale\Locale;
+use Lkt\QueryBuilding\Query;
 
 class MySQLConnector extends DatabaseConnector
 {
@@ -133,6 +134,51 @@ class MySQLConnector extends DatabaseConnector
         return $r;
     }
 
+    private function buildColumns(Query $builder): string
+    {
+        $r = [];
+        foreach ($builder->getColumns() as $column) {
+            $r[] = $this->buildColumnString($column, $builder->getTable());
+        }
+
+        return implode(',', $r);
+    }
+
+
+    private function buildColumnString(string $column, string $table): string
+    {
+        $prependTable = "{$table}.";
+        $tempColumn = str_replace([' as ', ' AS ', ' aS ', ' As '], '{{---LKT_SEPARATOR---}}', $column);
+        $exploded = explode('{{---LKT_SEPARATOR---}}', $tempColumn);
+
+        $key = trim($exploded[0]);
+        $alias = isset($exploded[1]) ? trim($exploded[1]) : '';
+
+        if (strpos($column, 'UNCOMPRESS') === 0) {
+            if ($alias !== '') {
+                $r = "{$key} AS {$alias}";
+            } else {
+                $r = $key;
+            }
+        }
+
+        elseif (strpos($key, $prependTable) === 0) {
+            if ($alias !== '') {
+                $r = "{$key} AS {$alias}";
+            } else {
+                $r = $key;
+            }
+        } else {
+            if ($alias !== '') {
+                $r = "{$prependTable}{$key} AS {$alias}";
+            } else {
+                $r = "{$prependTable}{$key}";
+            }
+        }
+
+        return $r;
+    }
+
     /**
      * @param array $params
      * @return string
@@ -160,5 +206,77 @@ class MySQLConnector extends DatabaseConnector
             return 0;
         }
         return (int)$this->connection->lastInsertId();
+    }
+
+    /**
+     * @param Query $builder
+     * @param string $type
+     * @param string $countableField
+     * @return string
+     */
+    public function getQuery(Query $builder, string $type, string $countableField): string
+    {
+        $whereString = $builder->getQueryWhere();
+
+        switch ($type) {
+            case 'select':
+            case 'selectDistinct':
+            case 'count':
+                $from = [];
+                foreach ($builder->getJoins() as $join) {
+                    $from[] = (string)$join;
+                }
+                $fromString = implode(' ', $from);
+                $fromString = str_replace('{{---LKT_PARENT_TABLE---}}', $builder->getTable(), $fromString);
+
+                $distinct = '';
+
+                if ($type === 'selectDistinct') {
+                    $distinct = 'DISTINCT';
+                    $type = 'select';
+                }
+
+                if ($type === 'select') {
+                    $columns = $this->buildColumns($builder);
+                    $orderBy = '';
+                    $pagination = '';
+
+                    if ($builder->hasOrder()) {
+                        $orderBy = " ORDER BY {$builder->getOrder()}";
+                    }
+
+                    if ($builder->hasPagination()) {
+                        $p = $builder->getPage() * $builder->getLimit();
+                        $pagination = " LIMIT {$p}, {$builder->getLimit()}";
+
+                    } elseif ($builder->hasLimit()) {
+                        $pagination = " LIMIT {$builder->getLimit()}";
+                    }
+
+
+                    return "SELECT {$distinct} {$columns} FROM {$builder->getTable()} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
+                }
+
+                if ($type === 'count') {
+                    return "SELECT COUNT({$countableField}) AS Count FROM {$builder->getTable()} {$fromString} WHERE 1 {$whereString}";
+                }
+                return '';
+
+            case 'update':
+            case 'insert':
+                $data = $this->makeUpdateParams($builder->getData());
+
+                if ($type === 'update') {
+                    return "UPDATE {$builder->getTable()} SET {$data} WHERE 1 {$whereString}";
+                }
+
+                if ($type === 'insert') {
+                    return "INSERT INTO {$builder->getTable()} SET {$data}";
+                }
+                return '';
+
+            default:
+                return '';
+        }
     }
 }

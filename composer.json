@@ -2,12 +2,13 @@
   "name": "lkt/mysql-connector",
   "description": "LKT MySQL connector",
   "type": "library",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "require": {
     "php": ">=7.2.0",
     "ext-pdo": "*",
     "lkt/database-connector": "^1.0.0",
-    "lkt/locale": "^1.0"
+    "lkt/locale": "^1.0",
+    "lkt/query-builder": "^1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^7.5.20",
