@@ -3,11 +3,23 @@
 namespace Lkt\DatabaseConnectors;
 
 use Lkt\DatabaseConnectors\Cache\QueryCache;
+use Lkt\Factory\Schemas\Exceptions\InvalidComponentException;
+use Lkt\Factory\Schemas\Exceptions\SchemaNotDefinedException;
 use Lkt\Factory\Schemas\Fields\AbstractField;
+use Lkt\Factory\Schemas\Fields\BooleanField;
+use Lkt\Factory\Schemas\Fields\DateTimeField;
+use Lkt\Factory\Schemas\Fields\EmailField;
+use Lkt\Factory\Schemas\Fields\FileField;
+use Lkt\Factory\Schemas\Fields\FloatField;
+use Lkt\Factory\Schemas\Fields\ForeignKeyField;
+use Lkt\Factory\Schemas\Fields\HTMLField;
+use Lkt\Factory\Schemas\Fields\IntegerField;
 use Lkt\Factory\Schemas\Fields\JSONField;
 use Lkt\Factory\Schemas\Fields\PivotField;
 use Lkt\Factory\Schemas\Fields\RelatedField;
 use Lkt\Factory\Schemas\Fields\RelatedKeysField;
+use Lkt\Factory\Schemas\Fields\StringField;
+use Lkt\Factory\Schemas\Fields\UnixTimeStampField;
 use Lkt\Factory\Schemas\Schema;
 use Lkt\Locale\Locale;
 use Lkt\QueryBuilding\Query;
@@ -108,7 +120,7 @@ class MySQLConnector extends DatabaseConnector
     /**
      * @param Schema $schema
      * @return array
-     * @throws \Lkt\Factory\Schemas\Exceptions\InvalidComponentException
+     * @throws InvalidComponentException
      */
     public function extractSchemaColumns(Schema $schema): array
     {
@@ -281,5 +293,104 @@ class MySQLConnector extends DatabaseConnector
             default:
                 return '';
         }
+    }
+
+    /**
+     * @param Schema $schema
+     * @param array $data
+     * @return array
+     * @throws InvalidComponentException
+     * @throws SchemaNotDefinedException
+     */
+    public function prepareDataToStore(Schema $schema, array $data): array
+    {
+        $fields = $schema->getAllFields();
+        $parsed = [];
+
+        foreach ($fields as $column => $field) {
+            $columnKey = $column;
+            if ($field instanceof ForeignKeyField) {
+                $columnKey .= 'Id';
+            }
+            if (array_key_exists($columnKey, $data)){
+                $value = $data[$columnKey];
+
+
+                $compress = $field instanceof JSONField && $field->isCompressed();
+
+                if ($field instanceof StringField
+                    || $field instanceof EmailField
+                    || $field instanceof RelatedKeysField
+                    || $field instanceof ForeignKeyField
+                ) {
+                    $r = trim($value);
+                    if ($compress) {
+                        $value = "COMPRESS('{$r}')";
+                    } else {
+                        $value = $r;
+                    }
+                }
+
+                if ($field instanceof HTMLField) {
+                    $r = $this->escapeDatabaseCharacters($value);
+                    if ($compress) {
+                        $value = "COMPRESS('{$r}')";
+                    } else {
+                        $value = $r;
+                    }
+                }
+
+                if ($field instanceof BooleanField) {
+                    $value = $value === true ? 1 : 0;
+                }
+
+                if ($field instanceof IntegerField) {
+                    $value = (int)$value;
+                }
+
+                if ($field instanceof FloatField) {
+                    $value = (float)$value;
+                }
+
+                if ($field instanceof UnixTimeStampField) {
+                    if ($value instanceof \DateTime) {
+                        $value = strtotime($value->format('Y-m-d H:i:s'));
+                    } else {
+                        $value = 0;
+                    }
+                }
+
+                if ($field instanceof DateTimeField) {
+                    if ($value instanceof \DateTime) {
+                        $value = strtotime($value->format('Y-m-d H:i:s'));
+                    } else {
+                        $value = '0000-00-00 00:00:00';
+                    }
+                }
+
+                if ($field instanceof FileField) {
+                    if (is_object($value)) {
+                        $value = $value->name;
+                    } else {
+                        $value = '';
+                    }
+                }
+
+                if ($field instanceof JSONField) {
+                    if (is_array($value)){
+                        $v = htmlspecialchars(json_encode($value), JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
+                        $v = $this->escapeDatabaseCharacters($v);
+
+                        if ($compress) {
+                            $value = "COMPRESS('{$v}')";
+                        }
+                        $value = $v;
+                    }
+                }
+                $parsed[$field->getColumn()] = $value;
+            }
+        }
+
+        return $parsed;
     }
 }
