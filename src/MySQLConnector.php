@@ -315,7 +315,6 @@ class MySQLConnector extends DatabaseConnector
             if (array_key_exists($columnKey, $data)){
                 $value = $data[$columnKey];
 
-
                 $compress = $field instanceof JSONField && $field->isCompressed();
 
                 if ($field instanceof StringField
@@ -362,7 +361,7 @@ class MySQLConnector extends DatabaseConnector
 
                 if ($field instanceof DateTimeField) {
                     if ($value instanceof \DateTime) {
-                        $value = strtotime($value->format('Y-m-d H:i:s'));
+                        $value = $value->format('Y-m-d H:i:s');
                     } else {
                         $value = '0000-00-00 00:00:00';
                     }
@@ -387,6 +386,7 @@ class MySQLConnector extends DatabaseConnector
                         $value = $v;
                     }
                 }
+
                 $parsed[$field->getColumn()] = $value;
             }
         }
