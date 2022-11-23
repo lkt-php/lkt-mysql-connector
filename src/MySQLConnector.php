@@ -159,7 +159,7 @@ class MySQLConnector extends DatabaseConnector
 
     private function buildColumnString(string $column, string $table): string
     {
-        $prependTable = "{$table}.";
+        $prependTable = $table !== '' ? "{$table}." : '';
         $tempColumn = str_replace([' as ', ' AS ', ' aS ', ' As '], '{{---LKT_SEPARATOR---}}', $column);
         $exploded = explode('{{---LKT_SEPARATOR---}}', $tempColumn);
 
