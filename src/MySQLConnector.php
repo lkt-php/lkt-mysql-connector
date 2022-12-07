@@ -30,19 +30,12 @@ class MySQLConnector extends DatabaseConnector
     protected $charset = 'utf8';
     protected $rememberTotal = '';
 
-    /**
-     * @param string $rememberTotal
-     * @return $this
-     */
     public function setRememberTotal(string $rememberTotal): MySQLConnector
     {
         $this->rememberTotal = $rememberTotal;
         return $this;
     }
 
-    /**
-     * @return DatabaseConnector
-     */
     public function connect(): DatabaseConnector
     {
         if ($this->connection !== null) {
@@ -63,20 +56,12 @@ class MySQLConnector extends DatabaseConnector
         return $this;
     }
 
-    /**
-     * @return DatabaseConnector
-     */
     public function disconnect(): DatabaseConnector
     {
         $this->connection = null;
         return $this;
     }
 
-    /**
-     * @param string $query
-     * @param array $replacements
-     * @return array|null
-     */
     public function query(string $query, array $replacements = []):? array
     {
         $this->connect();
@@ -117,11 +102,6 @@ class MySQLConnector extends DatabaseConnector
         return $r;
     }
 
-    /**
-     * @param Schema $schema
-     * @return array
-     * @throws InvalidComponentException
-     */
     public function extractSchemaColumns(Schema $schema): array
     {
         $table = $schema->getTable();
@@ -191,10 +171,6 @@ class MySQLConnector extends DatabaseConnector
         return $r;
     }
 
-    /**
-     * @param array $params
-     * @return string
-     */
     public function makeUpdateParams(array $params = []) :string
     {
         $r = [];
@@ -209,9 +185,6 @@ class MySQLConnector extends DatabaseConnector
         return trim(implode(',', $r));
     }
 
-    /**
-     * @return int
-     */
     public function getLastInsertedId(): int
     {
         if ($this->connection === null) {
@@ -220,12 +193,6 @@ class MySQLConnector extends DatabaseConnector
         return (int)$this->connection->lastInsertId();
     }
 
-    /**
-     * @param Query $builder
-     * @param string $type
-     * @param string|null $countableField
-     * @return string
-     */
     public function getQuery(Query $builder, string $type, string $countableField = null): string
     {
         $whereString = $builder->getQueryWhere();
@@ -295,13 +262,6 @@ class MySQLConnector extends DatabaseConnector
         }
     }
 
-    /**
-     * @param Schema $schema
-     * @param array $data
-     * @return array
-     * @throws InvalidComponentException
-     * @throws SchemaNotDefinedException
-     */
     public function prepareDataToStore(Schema $schema, array $data): array
     {
         $fields = $schema->getAllFields();
@@ -381,7 +341,7 @@ class MySQLConnector extends DatabaseConnector
                         $v = $this->escapeDatabaseCharacters($v);
 
                         if ($compress) {
-                            $value = "COMPRESS('{$v}')";
+                            $v = "COMPRESS('{$v}')";
                         }
                         $value = $v;
                     }
