@@ -3,8 +3,6 @@
 namespace Lkt\DatabaseConnectors;
 
 use Lkt\DatabaseConnectors\Cache\QueryCache;
-use Lkt\Factory\Schemas\Exceptions\InvalidComponentException;
-use Lkt\Factory\Schemas\Exceptions\SchemaNotDefinedException;
 use Lkt\Factory\Schemas\Fields\AbstractField;
 use Lkt\Factory\Schemas\Fields\BooleanField;
 use Lkt\Factory\Schemas\Fields\DateTimeField;
@@ -215,6 +213,9 @@ class MySQLConnector extends DatabaseConnector
                     $type = 'select';
                 }
 
+                $tableAlias = $builder->getTableAlias();
+                $asTableAlias = $builder->hasTableAlias() ? " AS {$tableAlias} " : '';
+
                 if ($type === 'select') {
                     $columns = $this->buildColumns($builder);
                     $orderBy = '';
@@ -233,11 +234,11 @@ class MySQLConnector extends DatabaseConnector
                     }
 
 
-                    return "SELECT {$distinct} {$columns} FROM {$builder->getTable()} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
+                    return "SELECT {$distinct} {$columns} FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
                 }
 
                 if ($type === 'count') {
-                    return "SELECT COUNT({$countableField}) AS Count FROM {$builder->getTable()} {$fromString} WHERE 1 {$whereString}";
+                    return "SELECT COUNT({$countableField}) AS Count FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString}";
                 }
                 return '';
 
