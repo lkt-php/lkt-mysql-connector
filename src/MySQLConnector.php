@@ -18,6 +18,7 @@ use Lkt\Factory\Schemas\Fields\RelatedField;
 use Lkt\Factory\Schemas\Fields\RelatedKeysField;
 use Lkt\Factory\Schemas\Fields\StringField;
 use Lkt\Factory\Schemas\Fields\UnixTimeStampField;
+use Lkt\Factory\Schemas\ComputedFields\AbstractComputedField;
 use Lkt\Factory\Schemas\Schema;
 use Lkt\Locale\Locale;
 use Lkt\QueryBuilding\Query;
@@ -110,7 +111,7 @@ class MySQLConnector extends DatabaseConnector
         $r = [];
 
         foreach ($fields as $key => $field) {
-            if ($field instanceof PivotField || $field instanceof RelatedField || $field instanceof RelatedKeysField) {
+            if ($field instanceof PivotField || $field instanceof RelatedField || $field instanceof RelatedKeysField || $field instanceof AbstractComputedField) {
                 continue;
             }
             $column = trim($field->getColumn());
@@ -203,8 +204,21 @@ class MySQLConnector extends DatabaseConnector
                 foreach ($builder->getJoins() as $join) {
                     $from[] = (string)$join;
                 }
+
+                $joinedWhere = [];
+                $joinedBuilders = $builder->getJoinedBuilders();
+                if (count($joinedBuilders) > 0) {
+                    foreach ($joinedBuilders as $key => $joinedBuilder) {
+                        $joinData = $builder->getJoinedBuildersRelation($key);
+                        $from[] = $joinedBuilder->getJoinString($joinData[0], $joinData[1], $builder->formatJoinedColumn($joinData[2]));
+                    }
+                }
                 $fromString = implode(' ', $from);
                 $fromString = str_replace('{{---LKT_PARENT_TABLE---}}', $builder->getTable(), $fromString);
+
+                if (count($joinedWhere) > 0) {
+                    $whereString = implode(' AND ', [$whereString, implode(' AND ', $joinedWhere)]);
+                }
 
                 $distinct = '';
 
