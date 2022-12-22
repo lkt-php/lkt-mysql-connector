@@ -25,9 +25,9 @@ use Lkt\QueryBuilding\Query;
 
 class MySQLConnector extends DatabaseConnector
 {
-    protected $port = 3306;
-    protected $charset = 'utf8';
-    protected $rememberTotal = '';
+    protected int $port = 3306;
+    protected string $charset = 'utf8';
+    protected string $rememberTotal = '';
 
     public function setRememberTotal(string $rememberTotal): MySQLConnector
     {
