@@ -106,7 +106,7 @@ class MySQLConnector extends DatabaseConnector
         $table = $schema->getTable();
 
         /** @var AbstractField[] $fields */
-        $fields = $schema->getAllFields();
+        $fields = $schema->getSameTableFields();
 
         $r = [];
 
@@ -128,8 +128,9 @@ class MySQLConnector extends DatabaseConnector
     private function buildColumns(Query $builder): string
     {
         $r = [];
+        $table = $builder->getTableNameOrAlias();
         foreach ($builder->getColumns() as $column) {
-            $r[] = $this->buildColumnString($column, $builder->getTable());
+            $r[] = $this->buildColumnString($column, $table);
         }
 
         return implode(',', $r);
@@ -145,7 +146,7 @@ class MySQLConnector extends DatabaseConnector
         $key = trim($exploded[0]);
         $alias = isset($exploded[1]) ? trim($exploded[1]) : '';
 
-        if (strpos($column, 'UNCOMPRESS') === 0) {
+        if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'")) {
             if ($alias !== '') {
                 $r = "{$key} AS {$alias}";
             } else {
