@@ -44,7 +44,7 @@ class MySQLConnector extends DatabaseConnector
         // Perform the connection
         try {
             $this->connection = new \PDO (
-                "mysql:host={$this->host};dbname={$this->database};charset={$this->charset}",
+                "mysql:host={$this->host}:{$this->port};dbname={$this->database};charset={$this->charset}",
                 $this->user,
                 $this->password
             );
@@ -146,7 +146,7 @@ class MySQLConnector extends DatabaseConnector
         $key = trim($exploded[0]);
         $alias = isset($exploded[1]) ? trim($exploded[1]) : '';
 
-        if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'")) {
+        if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'") || str_starts_with($column, "DISTINCT") || strpos($column, '(') > 0) {
             if ($alias !== '') {
                 $r = "{$key} AS {$alias}";
             } else {
@@ -228,6 +228,10 @@ class MySQLConnector extends DatabaseConnector
                     $type = 'select';
                 }
 
+                elseif ($type === 'count') {
+                    $distinct = 'DISTINCT';
+                }
+
                 $tableAlias = $builder->getTableAlias();
                 $asTableAlias = $builder->hasTableAlias() ? " AS {$tableAlias} " : '';
 
@@ -249,11 +253,13 @@ class MySQLConnector extends DatabaseConnector
                     }
 
 
-                    return "SELECT {$distinct} {$columns} FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
+                    $r = "SELECT {$distinct} {$columns} FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
+                    $r = str_replace('DISTINCT DISTINCT',  'DISTINCT', $r);
+                    return $r;
                 }
 
                 if ($type === 'count') {
-                    return "SELECT COUNT({$countableField}) AS Count FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString}";
+                    return "SELECT COUNT({$distinct} {$countableField}) AS Count FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString}";
                 }
                 return '';
 
