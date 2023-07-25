@@ -238,11 +238,11 @@ class MySQLConnector extends DatabaseConnector
                 if ($type === 'select') {
                     $columns = $this->buildColumns($builder);
                     $orderBy = '';
+                    $groupBy = '';
                     $pagination = '';
 
-                    if ($builder->hasOrder()) {
-                        $orderBy = " ORDER BY {$builder->getOrder()}";
-                    }
+                    if ($builder->hasOrder()) $orderBy = " ORDER BY {$builder->getOrder()}";
+                    if ($builder->hasGroupBy()) $groupBy = " GROUP BY {$builder->getGroupBy()}";
 
                     if ($builder->hasPagination()) {
                         $p = $builder->getPage() * $builder->getLimit();
@@ -252,8 +252,12 @@ class MySQLConnector extends DatabaseConnector
                         $pagination = " LIMIT {$builder->getLimit()}";
                     }
 
+                    if ($orderBy && $groupBy) {
+                        $r = "SELECT * FROM (SELECT {$distinct} {$columns} FROM {$builder->getTable()} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}) AS tmp_table GROUP BY {$groupBy}";
+                    } else {
+                        $r = "SELECT {$distinct} {$columns} FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString} {$orderBy} {$groupBy} {$pagination}";
+                    }
 
-                    $r = "SELECT {$distinct} {$columns} FROM {$builder->getTable()}{$asTableAlias} {$fromString} WHERE 1 {$whereString} {$orderBy} {$pagination}";
                     $r = str_replace('DISTINCT DISTINCT',  'DISTINCT', $r);
                     return $r;
                 }
