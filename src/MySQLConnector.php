@@ -1,8 +1,8 @@
 <?php
 
-namespace Lkt\DatabaseConnectors;
+namespace Lkt\Connectors;
 
-use Lkt\DatabaseConnectors\Cache\QueryCache;
+use Lkt\Connectors\Cache\QueryCache;
 use Lkt\Factory\Schemas\Fields\AbstractField;
 use Lkt\Factory\Schemas\Fields\BooleanField;
 use Lkt\Factory\Schemas\Fields\DateTimeField;
@@ -29,13 +29,33 @@ class MySQLConnector extends DatabaseConnector
     protected string $charset = 'utf8';
     protected string $rememberTotal = '';
 
-    public function setRememberTotal(string $rememberTotal): MySQLConnector
+
+    /** @var MySQLConnector[] */
+    protected static array $connectors = [];
+
+    public static function define(string $name): static
+    {
+        $r = new static($name);
+        DatabaseConnections::set($r);
+        static::$connectors[$name] = $r;
+        return $r;
+    }
+
+    public static function get(string $name): static
+    {
+        if (!isset(static::$connectors[$name])) {
+            throw new \Exception("Connector '{$name}' doesn't exists");
+        }
+        return static::$connectors[$name];
+    }
+
+    public function setRememberTotal(string $rememberTotal): static
     {
         $this->rememberTotal = $rememberTotal;
         return $this;
     }
 
-    public function connect(): DatabaseConnector
+    public function connect(): static
     {
         if ($this->connection !== null) {
             return $this;
@@ -55,7 +75,7 @@ class MySQLConnector extends DatabaseConnector
         return $this;
     }
 
-    public function disconnect(): DatabaseConnector
+    public function disconnect(): static
     {
         $this->connection = null;
         return $this;
