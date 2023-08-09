@@ -5,6 +5,7 @@ namespace Lkt\Connectors;
 use Lkt\Connectors\Cache\QueryCache;
 use Lkt\Factory\Schemas\Fields\AbstractField;
 use Lkt\Factory\Schemas\Fields\BooleanField;
+use Lkt\Factory\Schemas\Fields\ConcatField;
 use Lkt\Factory\Schemas\Fields\DateTimeField;
 use Lkt\Factory\Schemas\Fields\EmailField;
 use Lkt\Factory\Schemas\Fields\FileField;
@@ -131,7 +132,7 @@ class MySQLConnector extends DatabaseConnector
         $r = [];
 
         foreach ($fields as $key => $field) {
-            if ($field instanceof PivotField || $field instanceof RelatedField || $field instanceof RelatedKeysField || $field instanceof AbstractComputedField) {
+            if ($field instanceof PivotField || $field instanceof RelatedField || $field instanceof RelatedKeysField || $field instanceof AbstractComputedField || $field instanceof ConcatField) {
                 continue;
             }
             $column = trim($field->getColumn());
@@ -174,7 +175,7 @@ class MySQLConnector extends DatabaseConnector
             }
         }
 
-        elseif (strpos($key, $prependTable) === 0) {
+        elseif (str_starts_with($key, $prependTable)) {
             if ($alias !== '') {
                 $r = "{$key} AS {$alias}";
             } else {
