@@ -192,14 +192,22 @@ class MySQLConnector extends DatabaseConnector
         return $r;
     }
 
-    public function makeUpdateParams(array $params = []) :string
+    public function makeUpdateParams(array $params = [], string $type = 'create') :string
     {
         $r = [];
         foreach ($params as $field => $value) {
+
             $v = addslashes(stripslashes($value));
-            if (strpos($value, 'COMPRESS(') === 0){
+            if (strpos($value, 'JSON_SET(') === 0) {
+                if ($type === 'create') {
+                    $value = str_replace($field, '"{}"', $value);
+                }
                 $r[] = "`{$field}`={$value}";
-            } else {
+            }
+            elseif (strpos($value, 'COMPRESS(') === 0){
+                $r[] = "`{$field}`={$value}";
+            }
+            else {
                 $r[] = "`{$field}`='{$v}'";
             }
         }
@@ -290,13 +298,14 @@ class MySQLConnector extends DatabaseConnector
 
             case 'update':
             case 'insert':
-                $data = $this->makeUpdateParams($builder->getData());
+                $data = $this->makeUpdateParams($builder->getData(), $type);
 
                 if ($type === 'update') {
                     return "UPDATE {$builder->getTable()} SET {$data} WHERE 1 {$whereString}";
                 }
 
                 if ($type === 'insert') {
+                    dd("INSERT INTO {$builder->getTable()} SET {$data}");
                     return "INSERT INTO {$builder->getTable()} SET {$data}";
                 }
                 return '';
@@ -323,6 +332,15 @@ class MySQLConnector extends DatabaseConnector
                 $value = $data[$columnKey];
 
                 $compress = $field instanceof JSONField && $field->isCompressed();
+
+                if ($field instanceof StringField && $field->isI18nJson()) {
+                    $r = trim($value);
+
+                    $lang = Locale::getLangCode();
+                    if (!$lang) $lang = 'en';
+
+                    $value = "JSON_SET({$column}, \"$.{$lang}\", \"{$r}\")";
+                }
 
                 if ($field instanceof StringField
                     || $field instanceof EmailField
