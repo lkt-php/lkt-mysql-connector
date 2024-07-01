@@ -305,7 +305,6 @@ class MySQLConnector extends DatabaseConnector
                 }
 
                 if ($type === 'insert') {
-                    dd("INSERT INTO {$builder->getTable()} SET {$data}");
                     return "INSERT INTO {$builder->getTable()} SET {$data}";
                 }
                 return '';
