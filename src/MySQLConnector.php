@@ -174,7 +174,7 @@ class MySQLConnector extends DatabaseConnector
             $lang = Locale::getLangCode();
             if (!$lang) $lang = 'en';
 
-            return "JSON_EXTRACT({$key}, \"$.{$lang}\") as {$alias}";
+            return "JSON_UNQUOTE(JSON_EXTRACT({$key}, \"$.{$lang}\")) as {$alias}";
         }
 
         if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'") || str_starts_with($column, "DISTINCT") || strpos($column, '(') > 0) {
