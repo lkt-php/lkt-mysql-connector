@@ -167,6 +167,16 @@ class MySQLConnector extends DatabaseConnector
         $key = trim($exploded[0]);
         $alias = isset($exploded[1]) ? trim($exploded[1]) : '';
 
+        $schema = Schema::getFromTable($table);
+        $field = $schema->getField($alias);
+
+        if (method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
+            $lang = Locale::getLangCode();
+            if (!$lang) $lang = 'en';
+
+            return "JSON_EXTRACT({$key}, \"$.{$lang}\") as {$alias}";
+        }
+
         if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'") || str_starts_with($column, "DISTINCT") || strpos($column, '(') > 0) {
             if ($alias !== '') {
                 $r = "{$key} AS {$alias}";
@@ -192,14 +202,14 @@ class MySQLConnector extends DatabaseConnector
         return $r;
     }
 
-    public function makeUpdateParams(array $params = [], string $type = 'create') :string
+    public function makeUpdateParams(array $params = [], string $type = 'insert') :string
     {
         $r = [];
         foreach ($params as $field => $value) {
 
             $v = addslashes(stripslashes($value));
             if (strpos($value, 'JSON_SET(') === 0) {
-                if ($type === 'create') {
+                if ($type === 'create' || $type === 'insert') {
                     $value = str_replace($field, '"{}"', $value);
                 }
                 $r[] = "`{$field}`={$value}";
