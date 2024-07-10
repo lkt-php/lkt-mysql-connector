@@ -170,7 +170,7 @@ class MySQLConnector extends DatabaseConnector
         $schema = Schema::getFromTable($table);
         $field = $schema->getField($alias);
 
-        if (method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
+        if ($field instanceOf AbstractField && method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
             $lang = Locale::getLangCode();
             if (!$lang) $lang = 'en';
 
