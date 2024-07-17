@@ -332,11 +332,25 @@ class MySQLConnector extends DatabaseConnector
         $fields = $schema->getAllFields();
         $parsed = [];
 
+        $fixedLangFields = array_filter($fields, function (AbstractField $field) {
+            return $field instanceof StringField && $field->isI18nJson() && $field->getFixedLangKey();
+        });
+
+        $multiLangSharedKeys = [];
+        foreach ($fixedLangFields as $field) {
+            $c = $field->getColumn();
+            if (!is_array($multiLangSharedKeys[$c])) $multiLangSharedKeys[$c] = [];
+            $multiLangSharedKeys[$c][] = $field->getName();
+        }
+
+        $groupedTranslations = [];
+
         foreach ($fields as $column => $field) {
             $columnKey = $column;
             if ($field instanceof ForeignKeyField) {
                 $columnKey .= 'Id';
             }
+
             if (array_key_exists($columnKey, $data)){
                 $value = $data[$columnKey];
 
@@ -347,8 +361,12 @@ class MySQLConnector extends DatabaseConnector
 
                     $lang = $field->hasFixedLangKey() ? $field->getFixedLangKey() : Locale::getLangCode();
                     if (!$lang) $lang = 'en';
+                    $column = $field->getColumn();
 
-                    $value = "JSON_SET({$column}, \"$.{$lang}\", \"{$r}\")";
+//                    $value = "JSON_SET({$column}, \"$.{$lang}\", \"{$r}\")";
+
+                    $groupedTranslations[$column][$lang] = $r;
+                    continue;
                 }
 
                 if ($field instanceof StringField
@@ -423,6 +441,21 @@ class MySQLConnector extends DatabaseConnector
 
                 $parsed[$field->getColumn()] = $value;
             }
+        }
+
+        foreach ($groupedTranslations as $column => $langs) {
+            $t = [];
+            foreach ($langs as $lang => $val) {
+                $t[] = "\"$.{$lang}\"";
+                $t[] = "\"{$val}\"";
+            }
+
+            if (count($t) === 0) continue;
+
+            $t = implode(', ', $t);
+            $t = "JSON_SET({$column}, {$t})";
+
+            $parsed[$column] = $t;
         }
 
         return $parsed;
