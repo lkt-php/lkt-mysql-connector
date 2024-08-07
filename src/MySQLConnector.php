@@ -3,6 +3,7 @@
 namespace Lkt\Connectors;
 
 use Lkt\Connectors\Cache\QueryCache;
+use Lkt\Connectors\Exceptions\InvalidDatabaseConnectorException;
 use Lkt\Factory\Schemas\Fields\AbstractField;
 use Lkt\Factory\Schemas\Fields\BooleanField;
 use Lkt\Factory\Schemas\Fields\ConcatField;
@@ -45,7 +46,7 @@ class MySQLConnector extends DatabaseConnector
     public static function get(string $name): static
     {
         if (!isset(static::$connectors[$name])) {
-            throw new \Exception("Connector '{$name}' doesn't exists");
+            throw InvalidDatabaseConnectorException::getInstance($name);
         }
         return static::$connectors[$name];
     }
@@ -86,7 +87,6 @@ class MySQLConnector extends DatabaseConnector
     {
         $this->connect();
         $sql = ConnectionHelper::sanitizeQuery($query);
-        $sql = ConnectionHelper::prepareParams($sql, $replacements);
         $sql = \str_replace('_LANG', '_' . Locale::getLangCode(), $sql);
         if ($this->rememberTotal !== '') {
             $sql = \preg_replace('/SELECT/i', 'SELECT SQL_CALC_FOUND_ROWS', $sql, 1);
@@ -104,9 +104,7 @@ class MySQLConnector extends DatabaseConnector
         // fetch
         $result = $this->connection->query($sql, \PDO::FETCH_ASSOC);
 
-        if ($this->forceRefresh) {
-            $this->forceRefreshFinished();
-        }
+        if ($this->forceRefresh) $this->forceRefreshFinished();
 
         if ($result === true || $result === false) {
             QueryCache::set($this->name, $sql, null);
@@ -114,9 +112,7 @@ class MySQLConnector extends DatabaseConnector
         }
 
         $r = [];
-        foreach ($result as $row) {
-            $r[] = $row;
-        }
+        foreach ($result as $row) $r[] = $row;
 
         QueryCache::set($this->name, $sql, $r);
         return $r;
@@ -150,9 +146,7 @@ class MySQLConnector extends DatabaseConnector
     {
         $r = [];
         $table = $builder->getTableNameOrAlias();
-        foreach ($builder->getColumns() as $column) {
-            $r[] = $this->buildColumnString($column, $table);
-        }
+        foreach ($builder->getColumns() as $column) $r[] = $this->buildColumnString($column, $table);
 
         return implode(',', $r);
     }
@@ -226,9 +220,7 @@ class MySQLConnector extends DatabaseConnector
 
     public function getLastInsertedId(): int
     {
-        if ($this->connection === null) {
-            return 0;
-        }
+        if ($this->connection === null) return 0;
         return (int)$this->connection->lastInsertId();
     }
 
