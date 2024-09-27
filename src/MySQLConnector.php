@@ -164,7 +164,7 @@ class MySQLConnector extends DatabaseConnector
         $schema = Schema::getFromTable($table);
         $field = $schema->getField($alias);
 
-        if ($field instanceOf AbstractField && method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
+        if ($field instanceOf StringField && method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
             $lang = $field->hasFixedLangKey() ? $field->getFixedLangKey() : Locale::getLangCode();
             if (!$lang) $lang = 'en';
 
@@ -200,7 +200,6 @@ class MySQLConnector extends DatabaseConnector
     {
         $r = [];
         foreach ($params as $field => $value) {
-
             $v = addslashes(stripslashes($value));
             if (strpos($value, 'JSON_SET(') === 0) {
                 if ($type === 'create' || $type === 'insert') {
@@ -421,8 +420,17 @@ class MySQLConnector extends DatabaseConnector
 
                 if ($field instanceof JSONField) {
                     if (is_array($value)){
-                        $v = htmlspecialchars(json_encode($value), JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
-                        $v = $this->escapeDatabaseCharacters($v);
+                        if (!$field->isI18nJson()) {
+                            $v = htmlspecialchars(json_encode($value), JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
+                            $v = $this->escapeDatabaseCharacters($v);
+                        } else {
+                            foreach ($value as $k => &$v) {
+                                $v = htmlspecialchars($v, JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
+                                $v = $this->escapeDatabaseCharacters($v);
+                            }
+
+                            $v = json_encode($value);
+                        }
 
                         if ($compress) {
                             $v = "COMPRESS('{$v}')";
