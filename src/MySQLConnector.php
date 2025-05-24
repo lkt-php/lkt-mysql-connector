@@ -421,15 +421,16 @@ class MySQLConnector extends DatabaseConnector
                 if ($field instanceof JSONField) {
                     if (is_array($value)){
                         if (!$field->isI18nJson()) {
-                            $v = htmlspecialchars(json_encode($value), JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
+                            $v = json_encode($value, JSON_UNESCAPED_UNICODE);
                             $v = $this->escapeDatabaseCharacters($v);
+                            $v = htmlspecialchars($v, JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
                         } else {
                             foreach ($value as $k => &$v) {
-                                $v = htmlspecialchars($v, JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
                                 $v = $this->escapeDatabaseCharacters($v);
+                                $v = htmlspecialchars($v, JSON_UNESCAPED_UNICODE|ENT_QUOTES, 'UTF-8');
                             }
 
-                            $v = json_encode($value);
+                            $v = json_encode($value, JSON_UNESCAPED_UNICODE);
                         }
 
                         if ($compress) {
