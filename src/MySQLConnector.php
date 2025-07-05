@@ -386,7 +386,15 @@ class MySQLConnector extends DatabaseConnector
                     $value = $value === true ? 1 : 0;
                 }
 
-                if ($field instanceof IntegerField) {
+                if ($field instanceof IntegerField && $field->isMultiple()) {
+                    $valueAux = [];
+                    foreach ($value as $item) {
+                        $valueAux[] = (int)$item;
+                    }
+                    $value = implode(';', $valueAux);
+                }
+
+                else if ($field instanceof IntegerField) {
                     $value = (int)$value;
                 }
 
