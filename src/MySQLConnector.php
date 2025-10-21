@@ -418,7 +418,14 @@ class MySQLConnector extends DatabaseConnector
                     }
                 }
 
-                if ($field instanceof FileField) {
+                if ($field instanceof FileField && $field->isMultiple()) {
+                    $valueAux = [];
+                    foreach ($value as $item) {
+                        $valueAux[] = $item;
+                    }
+                    $value = implode(';', $valueAux);
+                }
+                else if ($field instanceof FileField) {
                     if (is_object($value)) {
                         $value = $value->name;
                     } else {
