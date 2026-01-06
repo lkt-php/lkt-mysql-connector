@@ -163,6 +163,7 @@ class MySQLConnector extends DatabaseConnector
 
         $schema = Schema::getFromTable($table);
         $field = $schema->getField($alias);
+        if (!$field) $field = $schema->getField($key);
 
         if ($field instanceOf StringField && method_exists($field, 'isI18nJson') && $field->isI18nJson()) {
             $lang = $field->hasFixedLangKey() ? $field->getFixedLangKey() : Locale::getLangCode();
@@ -170,6 +171,8 @@ class MySQLConnector extends DatabaseConnector
 
             return "JSON_UNQUOTE(JSON_EXTRACT({$key}, \"$.{$lang}\")) as {$alias}";
         }
+
+        if (!$field) return $column;
 
         if (str_starts_with($column, 'UNCOMPRESS') || str_starts_with($column, "'") || str_starts_with($column, "DISTINCT") || strpos($column, '(') > 0) {
             if ($alias !== '') {
